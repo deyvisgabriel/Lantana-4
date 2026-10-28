@@ -48,6 +48,7 @@ window.LANTANA = {
   products: [
     {
       id: "cheesecake-vasco",
+      featured: true,
       name: "Cheesecake Vasco",
       category: "cheesecakes",
       badge: "El favorito",
@@ -66,7 +67,7 @@ window.LANTANA = {
       name: "Cheesecake New York",
       category: "cheesecakes",
       description: "Cremoso, elegante y perfectamente equilibrado. Un clásico que nunca falla.",
-      img: unsplash("1708175313856-8573b2bf8a3a"),
+      img: unsplash("1524351199678-941a58a3df50"),
       alt: "Porción de cheesecake New York cremoso en plato",
       options: [
         { id: "porcion", label: "Porción", price: 35 },
@@ -77,6 +78,7 @@ window.LANTANA = {
     },
     {
       id: "cheesecake-oreo",
+      featured: true,
       name: "Cheesecake Oreo",
       category: "cheesecakes",
       description: "La combinación perfecta entre la cremosidad del cheesecake y el sabor irresistible de Oreo.",
@@ -91,6 +93,7 @@ window.LANTANA = {
     },
     {
       id: "torta-bruce-bruce",
+      featured: true,
       name: "Torta Bruce Bruce",
       category: "tortas",
       badge: "Para chocolate lovers",
@@ -105,6 +108,7 @@ window.LANTANA = {
     },
     {
       id: "mini-cheesecakes",
+      featured: true,
       name: "Mini Cheesecakes",
       category: "cheesecakes",
       badge: "Ideal para regalar",
@@ -141,6 +145,18 @@ window.LANTANA = {
       cta: "Pedir por WhatsApp",
     },
   ],
+
+  /* Música de fondo según la hora del visitante (horas en formato 24 h).
+     Suena desde la primera interacción con la página (los navegadores no
+     permiten audio automático antes) y puede pausarse con el botón ♪. */
+  music: {
+    volume: 0.35,
+    tracks: [
+      { label: "Mañana en Lantana", from: 6, to: 12, src: "assets/musica/manana.mp3" },
+      { label: "Tarde en Lantana", from: 12, to: 19, src: "assets/musica/tarde.mp3" },
+      { label: "Noche en Lantana", from: 19, to: 6, src: "assets/musica/noche.mp3" },
+    ],
+  },
 
   /* Testimonios de DEMOSTRACIÓN. Reemplazar por reseñas reales y luego
      cambiar `testimonialsAreDemo` a false para quitar el aviso. */

@@ -25,6 +25,7 @@ web/
 | Presentaciones de Mini Cheesecakes | Reemplaza la opción única por varias: `{ id: "caja6", label: "Caja x6", price: 120 }` |
 | Usuario de Instagram / TikTok | `instagram`, `tiktok` (**pendiente confirmar**) |
 | Testimonios reales | Edita `testimonials` y pon `testimonialsAreDemo: false` para quitar el aviso de "ejemplo" |
+| Música de fondo (pistas, horarios, volumen) | `music` — los MP3 están en `assets/musica/` |
 | Nuevo producto | Copia un bloque de `products` y cambia `id`, textos, foto y opciones |
 
 ## Reemplazar fotografías

@@ -87,7 +87,11 @@
     const toggle = $(".nav-toggle");
     const nav = $("#main-nav");
 
-    const onScroll = () => header.classList.toggle("scrolled", window.scrollY > 10);
+    const hero = $("#inicio");
+    const onScroll = () => {
+      header.classList.toggle("scrolled", window.scrollY > 10);
+      document.body.classList.toggle("past-hero", window.scrollY > hero.offsetHeight * 0.6);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
 
@@ -230,6 +234,39 @@
     });
   }
 
+  /** Lleva al producto en el menú y lo resalta brevemente. */
+  function focusProduct(id) {
+    const card = $(`.product[data-id="${id}"]`);
+    if (!card) return;
+    if (card.classList.contains("is-hidden")) $('[data-filter="todos"]').click();
+    card.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+    card.classList.remove("flash");
+    void card.offsetWidth;
+    card.classList.add("flash");
+    setTimeout(() => card.classList.remove("flash"), 2200);
+  }
+
+  function initPeek() {
+    const list = $("#peek-list");
+    list.innerHTML = D.products.filter((p) => p.featured).map((p) => `
+      <li>
+        <a class="peek-card" href="#menu" data-peek="${p.id}">
+          <img src="${imgSrc(p.img, 160)}" alt="" width="64" height="64" loading="lazy" decoding="async">
+          <span>
+            <strong>${esc(p.name)}</strong>
+            <small>${priceLabel(p).replace(/<[^>]+>/g, "")}</small>
+          </span>
+          <span class="peek-arrow">${icon("arrow-right")}</span>
+        </a>
+      </li>`).join("");
+    list.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-peek]");
+      if (!a) return;
+      e.preventDefault();
+      focusProduct(a.dataset.peek);
+    });
+  }
+
   function initToppings() {
     $("#topping-list").innerHTML = D.toppings.map((t) => `
       <li class="topping reveal">
@@ -311,6 +348,15 @@
     $$("[data-cart-word]").forEach((el) => (el.textContent = count === 1 ? "producto" : "productos"));
     $$("[data-cart-total]").forEach((el) => (el.textContent = total || !pending ? money(total) : "A confirmar"));
     $("#cart-pending").hidden = !pending;
+
+    const headerCta = $("[data-header-cta]");
+    if (count) {
+      headerCta.textContent = `Mi pedido (${count})`;
+      headerCta.setAttribute("data-open-cart", "");
+    } else {
+      headerCta.textContent = "Ver menú";
+      headerCta.removeAttribute("data-open-cart");
+    }
 
     const bar = $(".cart-bar");
     bar.hidden = count === 0;
@@ -586,6 +632,98 @@
     }
   }
 
+  /* ---------- Música de fondo ---------- */
+  function initMusic() {
+    const cfg = D.music;
+    if (!cfg || !cfg.tracks.length) return;
+    const audio = $("#bg-music");
+    const btn = $("#music-toggle");
+    const PREF_KEY = "lantana-music";
+
+    // Pista según la hora del visitante
+    const h = new Date().getHours();
+    const track = cfg.tracks.find((t) => (t.from < t.to ? h >= t.from && h < t.to : h >= t.from || h < t.to)) || cfg.tracks[0];
+    audio.src = track.src;
+    $("#music-moment").textContent = track.label;
+
+    let pref = null;
+    try { pref = localStorage.getItem(PREF_KEY); } catch (_) { /* sin almacenamiento */ }
+    const savePref = (v) => { try { localStorage.setItem(PREF_KEY, v); } catch (_) { /* */ } };
+
+    let wanted = pref !== "off";
+    let fadeTimer, labelTimer;
+    const fade = (target, done) => {
+      clearInterval(fadeTimer);
+      fadeTimer = setInterval(() => {
+        const diff = target - audio.volume;
+        if (Math.abs(diff) <= 0.02) {
+          audio.volume = target;
+          clearInterval(fadeTimer);
+          if (done) done();
+          return;
+        }
+        audio.volume = Math.min(1, Math.max(0, audio.volume + Math.sign(diff) * 0.02));
+      }, 70);
+    };
+
+    const setUI = (on) => {
+      btn.classList.toggle("playing", on);
+      btn.setAttribute("aria-pressed", String(on));
+      btn.setAttribute("aria-label", on ? "Pausar música de fondo" : "Activar música de fondo");
+      if (!btn.classList.contains("invite")) $("#music-state").textContent = on ? "Sonando ahora" : "Escuchar";
+      if (on) {
+        $("#music-state").textContent = "Sonando ahora";
+        btn.classList.remove("invite");
+        $("#music-moment").textContent = track.label;
+      }
+    };
+    // Mientras no suene, el botón invita a tocarlo (salvo que el visitante la haya apagado)
+    if (pref !== "off") {
+      btn.classList.add("invite");
+      $("#music-state").textContent = "Música de fondo";
+      $("#music-moment").textContent = "Toca para escuchar";
+    }
+    const play = () => {
+      audio.volume = 0;
+      return audio.play().then(() => {
+        setUI(true);
+        fade(cfg.volume);
+        btn.classList.add("show-label");
+        clearTimeout(labelTimer);
+        labelTimer = setTimeout(() => btn.classList.remove("show-label"), 4500);
+      }).catch(() => setUI(false));
+    };
+    const pause = () => {
+      setUI(false);
+      fade(0, () => audio.pause());
+    };
+
+    btn.addEventListener("click", () => {
+      if (btn.classList.contains("playing")) { wanted = false; savePref("off"); pause(); }
+      else { wanted = true; savePref("on"); play(); }
+    });
+
+    // Los navegadores bloquean el audio hasta que el visitante interactúa:
+    // la música empieza con su primer toque, clic o tecla.
+    if (wanted) {
+      const events = ["pointerup", "touchend", "keydown", "click"];
+      const unlock = (e) => {
+        events.forEach((ev) => document.removeEventListener(ev, unlock, true));
+        if (e.target.closest && e.target.closest("#music-toggle")) return; // el botón ya decide
+        if (wanted && audio.paused) play();
+      };
+      events.forEach((ev) => document.addEventListener(ev, unlock, true));
+      play(); // funciona directo si el navegador ya lo permite
+    }
+
+    // Pausa al cambiar de pestaña o abrir WhatsApp; retoma al volver
+    let resume = false;
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && !audio.paused) { resume = true; audio.pause(); }
+      else if (!document.hidden && resume && wanted) { resume = false; play(); }
+    });
+  }
+
   /* ---------- Animaciones al hacer scroll ---------- */
   function initReveal() {
     const els = $$(".reveal");
@@ -614,6 +752,7 @@
 
   /* ---------- Inicio ---------- */
   initCatalog();
+  initPeek();
   initToppings();
   wireLinks();
   initHeader();
@@ -623,5 +762,6 @@
   initContact();
   initCarousel();
   initReveal();
+  initMusic();
   $("#year").textContent = new Date().getFullYear();
 })();
