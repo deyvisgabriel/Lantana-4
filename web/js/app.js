@@ -652,28 +652,23 @@
 
     let wanted = pref !== "off";
     let fadeTimer, labelTimer;
-    // iPhone/iPad (Safari) no permite cambiar el volumen desde la página:
-    // audio.volume siempre vale 1. Ahí se omite el fundido y se pausa al instante.
-    const canFade = (() => {
-      const probe = new Audio();
-      probe.volume = 0.5;
-      return probe.volume === 0.5;
-    })();
+    /* Fundido de volumen. En iPhone/iPad, Safari no deja cambiar el volumen
+       desde la página: si el volumen no responde, se termina al instante.
+       También hay un límite de tiempo para que nunca quede colgado. */
     const fade = (target, done) => {
       clearInterval(fadeTimer);
-      if (!canFade) {
+      const startedAt = Date.now();
+      const finish = () => {
+        clearInterval(fadeTimer);
+        try { audio.volume = target; } catch (_) { /* volumen de solo lectura */ }
         if (done) done();
-        return;
-      }
+      };
       fadeTimer = setInterval(() => {
         const diff = target - audio.volume;
-        if (Math.abs(diff) <= 0.02) {
-          audio.volume = target;
-          clearInterval(fadeTimer);
-          if (done) done();
-          return;
-        }
-        audio.volume = Math.min(1, Math.max(0, audio.volume + Math.sign(diff) * 0.02));
+        if (Math.abs(diff) <= 0.02 || Date.now() - startedAt > 1500) return finish();
+        const before = audio.volume;
+        try { audio.volume = Math.min(1, Math.max(0, before + Math.sign(diff) * 0.02)); } catch (_) { /* */ }
+        if (audio.volume === before) finish(); // el navegador no permite cambiar el volumen
       }, 70);
     };
 
@@ -694,8 +689,16 @@
       $("#music-state").textContent = "Música de fondo";
       $("#music-moment").textContent = "Toca para escuchar";
     }
+
+    // La apariencia del botón sigue al audio real (no a suposiciones)
+    let fadingOut = false;
+    audio.addEventListener("play", () => { if (!fadingOut) setUI(true); });
+    audio.addEventListener("pause", () => setUI(false));
+
     const play = () => {
-      if (canFade) audio.volume = 0;
+      fadingOut = false;
+      clearInterval(fadeTimer);
+      try { audio.volume = 0; } catch (_) { /* */ }
       return audio.play().then(() => {
         setUI(true);
         fade(cfg.volume);
@@ -705,12 +708,17 @@
       }).catch(() => setUI(false));
     };
     const pause = () => {
+      fadingOut = true;
       setUI(false);
-      fade(0, () => audio.pause());
+      fade(0, () => { audio.pause(); fadingOut = false; });
+      // Respaldo: la música se detiene sí o sí
+      setTimeout(() => { if (!wanted && !audio.paused) audio.pause(); }, 1600);
     };
 
-    btn.addEventListener("click", () => {
-      if (btn.classList.contains("playing")) { wanted = false; savePref("off"); pause(); }
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const sounding = !audio.paused && !fadingOut;
+      if (sounding) { wanted = false; savePref("off"); pause(); }
       else { wanted = true; savePref("on"); play(); }
     });
 
