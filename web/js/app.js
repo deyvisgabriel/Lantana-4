@@ -652,8 +652,19 @@
 
     let wanted = pref !== "off";
     let fadeTimer, labelTimer;
+    // iPhone/iPad (Safari) no permite cambiar el volumen desde la página:
+    // audio.volume siempre vale 1. Ahí se omite el fundido y se pausa al instante.
+    const canFade = (() => {
+      const probe = new Audio();
+      probe.volume = 0.5;
+      return probe.volume === 0.5;
+    })();
     const fade = (target, done) => {
       clearInterval(fadeTimer);
+      if (!canFade) {
+        if (done) done();
+        return;
+      }
       fadeTimer = setInterval(() => {
         const diff = target - audio.volume;
         if (Math.abs(diff) <= 0.02) {
@@ -684,7 +695,7 @@
       $("#music-moment").textContent = "Toca para escuchar";
     }
     const play = () => {
-      audio.volume = 0;
+      if (canFade) audio.volume = 0;
       return audio.play().then(() => {
         setUI(true);
         fade(cfg.volume);
