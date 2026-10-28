@@ -652,6 +652,9 @@
 
     let wanted = pref !== "off";
     let fadeTimer, labelTimer;
+    // iPhone/iPad: Safari no deja controlar el volumen; ahí todo es instantáneo
+    const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     /* Fundido de volumen. En iPhone/iPad, Safari no deja cambiar el volumen
        desde la página: si el volumen no responde, se termina al instante.
        También hay un límite de tiempo para que nunca quede colgado. */
@@ -698,28 +701,39 @@
     const play = () => {
       fadingOut = false;
       clearInterval(fadeTimer);
-      try { audio.volume = 0; } catch (_) { /* */ }
+      audio.muted = false;
+      if (!isIOS) { try { audio.volume = 0; } catch (_) { /* */ } }
       return audio.play().then(() => {
         setUI(true);
-        fade(cfg.volume);
+        if (!isIOS) fade(cfg.volume);
         btn.classList.add("show-label");
         clearTimeout(labelTimer);
         labelTimer = setTimeout(() => btn.classList.remove("show-label"), 4500);
       }).catch(() => setUI(false));
     };
     const pause = () => {
-      fadingOut = true;
+      // Pausa instantánea al tocar el botón, en todos los dispositivos
+      clearInterval(fadeTimer);
+      fadingOut = false;
+      audio.pause();
       setUI(false);
-      fade(0, () => { audio.pause(); fadingOut = false; });
-      // Respaldo: la música se detiene sí o sí
-      setTimeout(() => { if (!wanted && !audio.paused) audio.pause(); }, 1600);
     };
 
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const sounding = !audio.paused && !fadingOut;
+    const toggle = () => {
+      const sounding = !audio.paused && !audio.muted && !fadingOut;
       if (sounding) { wanted = false; savePref("off"); pause(); }
       else { wanted = true; savePref("on"); play(); }
+    };
+    // En pantallas táctiles se responde al toque mismo: Safari en iPhone
+    // no siempre convierte el toque en "click". preventDefault evita el doble disparo.
+    btn.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    }, { passive: false });
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggle();
     });
 
     // Los navegadores bloquean el audio hasta que el visitante interactúa:

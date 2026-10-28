@@ -762,12 +762,12 @@ body.no-scroll .music-toggle { opacity: 0; pointer-events: none; }
   .hero-flower { width: 72px; right: -6px; top: 4px; }
   .hero-ctas .btn { flex: 1 1 100%; }
   body.has-cart-bar .wa-float { display: none; }
-  .music-toggle { width: 48px; height: 48px; padding: 0; justify-content: center; left: 14px; }
+  .music-toggle { width: 48px; height: 48px; padding: 0; justify-content: center; left: 14px; bottom: calc(28px + env(safe-area-inset-bottom)); }
   .music-label { display: none; }
   /* En celular, la invitación muestra el texto aunque el botón sea compacto */
   .music-toggle.invite { width: auto; padding: 0 1rem 0 0.9rem; gap: 0.6rem; }
   .music-toggle.invite .music-label { display: grid; }
-  body.has-cart-bar .music-toggle { bottom: calc(86px + env(safe-area-inset-bottom)); }
+  body.has-cart-bar .music-toggle { bottom: calc(90px + env(safe-area-inset-bottom)); }
 }
 
 @media (max-width: 639px) {
