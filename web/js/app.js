@@ -702,7 +702,8 @@
       fadingOut = false;
       clearInterval(fadeTimer);
       audio.muted = false;
-      if (!isIOS) { try { audio.volume = 0; } catch (_) { /* */ } }
+      // Si estaba bajando (pausa en curso), sube desde donde iba, sin saltos
+      if (!isIOS && audio.paused) { try { audio.volume = 0; } catch (_) { /* */ } }
       return audio.play().then(() => {
         setUI(true);
         if (!isIOS) fade(cfg.volume);
@@ -712,11 +713,21 @@
       }).catch(() => setUI(false));
     };
     const pause = () => {
-      // Pausa instantánea al tocar el botón, en todos los dispositivos
-      clearInterval(fadeTimer);
-      fadingOut = false;
-      audio.pause();
+      // El botón cambia al instante; el volumen baja de forma gradual,
+      // igual que al empezar. En iPhone (volumen no controlable) se pausa directo.
       setUI(false);
+      if (isIOS) {
+        clearInterval(fadeTimer);
+        fadingOut = false;
+        audio.pause();
+        return;
+      }
+      fadingOut = true;
+      fade(0, () => {
+        if (!fadingOut) return; // se reanudó durante la bajada
+        audio.pause();
+        fadingOut = false;
+      });
     };
 
     const toggle = () => {
