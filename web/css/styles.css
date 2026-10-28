@@ -760,7 +760,8 @@ body.no-scroll .music-toggle { opacity: 0; pointer-events: none; }
   .hero-badge { width: 104px; height: 104px; left: -4px; }
   .hero-badge .script { font-size: 2.1rem; }
   .hero-badge .small { font-size: 0.55rem; margin-top: -20px; }
-  .hero-flower { width: 72px; right: -6px; top: 4px; }
+  /* En el celular la flor cabe justo en la esquina libre que deja la curva de la foto */
+  .hero-flower { width: 50px; right: -2px; top: -2px; }
   .hero-ctas .btn { flex: 1 1 100%; }
   body.has-cart-bar .wa-float { display: none; }
   .music-toggle { width: 48px; height: 48px; padding: 0; justify-content: center; left: 14px; bottom: calc(28px + env(safe-area-inset-bottom)); }
